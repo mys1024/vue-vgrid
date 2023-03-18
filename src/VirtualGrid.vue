@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, toRefs } from 'vue'
-
-import { memoComputed, binarySearch } from './utils'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{
   viewHeight: number
@@ -12,8 +10,8 @@ const props = defineProps<{
   colWidth: number | number[]
 }>()
 
-const scrollTop = ref(0)
-const scrollLeft = ref(0)
+const viewScrollTop = ref(0)
+const viewScrollLeft = ref(0)
 
 const rowOffsets = computed(() => {
   if (!Array.isArray(props.rowHeight))
@@ -40,42 +38,41 @@ const colOffsets = computed(() => {
   return offsets
 })
 
-const containerHeight = computed(() => {
-  return Array.isArray(props.rowHeight)
+const containerHeight = computed(() => (
+  Array.isArray(props.rowHeight)
     ? rowOffsets.value[rowOffsets.value.length - 1]
     : props.rowHeight * props.rowCount
-})
-const containerWidth = computed(() => {
-  return Array.isArray(props.colWidth)
+))
+const containerWidth = computed(() => (
+  Array.isArray(props.colWidth)
     ? colOffsets.value[colOffsets.value.length - 1]
     : props.colWidth * props.colCount
-})
+))
 
 const viewHeightStr = computed(() => `${props.viewHeight}px`)
 const viewWidthStr = computed(() => `${props.viewWidth}px`)
 const containerHeightStr = computed(() => `${containerHeight.value}px`)
 const containerWidthStr = computed(() => `${containerWidth.value}px`)
 
-const xStart = memoComputed(() => {
-  return Array.isArray(props.colWidth)
-    ? ensureX(binarySearch(colOffsets.value, scrollLeft.value) - 1)
-    : Math.floor(scrollLeft.value / props.colWidth)
-})
-const xEnd  = memoComputed(() => {
-  return Array.isArray(props.colWidth)
-    ? ensureX(binarySearch(colOffsets.value, scrollLeft.value + props.viewWidth, props.colCount - 1))
-    : ensureX(Math.floor((scrollLeft.value + props.viewWidth) / props.colWidth))
-})
-const yStart = memoComputed(() => {
-  return Array.isArray(props.rowHeight)
-    ? ensureY(binarySearch(rowOffsets.value, scrollTop.value) - 1)
-    : Math.floor(scrollTop.value / props.rowHeight)
-})
-const yEnd  = memoComputed(() => {
-  return Array.isArray(props.rowHeight)
-    ? ensureY(binarySearch(rowOffsets.value, scrollTop.value + props.viewHeight, props.rowCount - 1))
-    : ensureY(Math.floor((scrollTop.value + props.viewHeight) / props.rowHeight))
-})
+const xStart = computed(() => (
+  Array.isArray(props.colWidth)
+    ? ensureX(binarySearch(colOffsets.value, viewScrollLeft.value) - 1)
+    : Math.floor(viewScrollLeft.value / props.colWidth)
+))
+const xEnd  = computed(() => (
+  Array.isArray(props.colWidth)
+    ? ensureX(binarySearch(colOffsets.value, viewScrollLeft.value + props.viewWidth, props.colCount - 1))
+    : ensureX(Math.floor((viewScrollLeft.value + props.viewWidth) / props.colWidth))
+))
+const yStart = computed(() => (
+  Array.isArray(props.rowHeight)
+    ? ensureY(binarySearch(rowOffsets.value, viewScrollTop.value) - 1)
+    : Math.floor(viewScrollTop.value / props.rowHeight)
+))
+const yEnd  = computed(() => (Array.isArray(props.rowHeight)
+    ? ensureY(binarySearch(rowOffsets.value, viewScrollTop.value + props.viewHeight, props.rowCount - 1))
+    : ensureY(Math.floor((viewScrollTop.value + props.viewHeight) / props.rowHeight))
+))
 
 function ensureX(x: number) {
   return x < 0 ? 0 : (x > props.colCount - 1 ? props.colCount - 1 : x)
@@ -106,19 +103,35 @@ function *range(start: number, end: number) {
     yield i
 }
 
+function binarySearch(sortedArr: number[], greaterThan: number, fallback = -1) {
+  let left = 0;
+  let right = sortedArr.length - 1;
+  let index = fallback;
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    if (sortedArr[mid] > greaterThan) {
+      index = mid;
+      right = mid - 1;
+    } else {
+      left = mid + 1;
+    }
+  }
+  return index;
+}
+
 function onScroll(event: Event) {
   const target = event.target as HTMLElement
-  scrollTop.value = target.scrollTop
-  scrollLeft.value = target.scrollLeft
+  viewScrollTop.value = target.scrollTop
+  viewScrollLeft.value = target.scrollLeft
 }
 </script>
 
 <template>
-  <div class="view" @scroll="onScroll">
-    <div class="container">
+  <div class="virtual-grid-view" @scroll="onScroll">
+    <div class="virtual-grid-container">
       <div
         v-for="y in range(yStart, yEnd + 1)" :key="y"
-        class="row"
+        class="virtual-grid-row"
         :style="{
           height: `${getRowHeight(y)}px`,
           transform: `translateY(${getYOffset(y)}px)`
@@ -126,13 +139,13 @@ function onScroll(event: Event) {
       >
         <div
           v-for="x in range(xStart, xEnd + 1)" :key="x"
-          class="cell"
+          class="virtual-grid-cell"
           :style="{
             width: `${getColWidth(x)}px`,
             transform: `translateX(${getXOffset(x)}px)`
           }"
         >
-          {{ y }}, {{ x }}
+          <slot name="cell" :y="y" :x="x" />
         </div>
       </div>
     </div>
@@ -140,26 +153,26 @@ function onScroll(event: Event) {
 </template>
 
 <style scoped>
-.view {
+.virtual-grid-view {
   height: v-bind(viewHeightStr);
   width: v-bind(viewWidthStr);
   overflow: auto;
 }
 
-.container {
+.virtual-grid-container {
   height: v-bind(containerHeightStr);
   width: v-bind(containerWidthStr);
   position: relative;
 }
 
-.row {
+.virtual-grid-row {
   width: v-bind(containerWidthStr);
   position: absolute;
   top: 0;
   left: 0;
 }
 
-.cell {
+.virtual-grid-cell {
   height: 100%;
   position: absolute;
   top: 0;
