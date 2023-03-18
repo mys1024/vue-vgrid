@@ -1,5 +1,32 @@
 import { customRef, watchEffect, computed } from 'vue'
 
+export function debouncedRef<T>(value: T, delay = 0) {
+  let timeout = -1
+  return customRef((track, trigger) => {
+    return {
+      get() {
+        track()
+        return value
+      },
+      set(newValue) {
+        clearTimeout(timeout)
+        timeout = setTimeout(() => {
+          value = newValue
+          trigger()
+        }, delay)
+      }
+    }
+  })
+}
+
+export function debouncedComputed<T>(getter: () => T, delay = 0) {
+  const _ref = debouncedRef(getter(), delay)
+  watchEffect(() => {
+    _ref.value = getter()
+  })
+  return computed(() => _ref.value)
+}
+
 export function memoRef<T>(value: T) {
   return customRef((track, trigger) => ({
     get() {
@@ -16,11 +43,11 @@ export function memoRef<T>(value: T) {
 }
 
 export function memoComputed<T>(getter: () => T) {
-  const memo = memoRef(getter())
+  const _ref = memoRef(getter())
   watchEffect(() => {
-    memo.value = getter()
+    _ref.value = getter()
   })
-  return computed(() => memo.value)
+  return computed(() => _ref.value)
 }
 
 export function binarySearch(arr: number[], greaterThan: number, fallback = -1): number {
