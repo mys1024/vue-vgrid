@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { VGrid } from '../../../dist/vgrid.js'
 
-import VirtualGrid from './VirtualGrid.vue'
+import '../../../dist/style.css'
 
 const visible = ref(false)
 
@@ -17,10 +18,10 @@ const rows = new Array(100000).fill(0).map((_, y) => {
         Toggle visible
       </button>
     </div>
-    <VirtualGrid
+    <VGrid
       v-if="visible"
-      :view-height="800" :view-width="900"
-      :row-height="25" :col-width="400"
+      :view-height="600" :view-width="600"
+      :row-height="25" :col-width="360"
       :row-count="rows.length" :col-count="rows[0].length"
     >
       <template #cell="{ y, x }">
@@ -32,6 +33,6 @@ const rows = new Array(100000).fill(0).map((_, y) => {
           {{ rows[y][x] }}
         </div>
       </template>
-    </VirtualGrid>
+    </VGrid>
   </div>
 </template>
