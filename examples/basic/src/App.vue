@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { VGrid } from '../../../dist/vgrid.js'
-import '../../../dist/style.css'
+import { VGrid } from 'vue-vgrid'
+import 'vue-vgrid/style.css'
 
 const visible = ref(false)
 
@@ -12,7 +12,7 @@ const rows = new Array(100000).fill(0).map((_, y) => {
 
 <template>
   <div>
-    <div>
+    <div style="margin-bottom: 16px;">
       <button @click="visible = !visible">
         Toggle visible
       </button>
