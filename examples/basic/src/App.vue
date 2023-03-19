@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { VGrid } from '../../../dist/vgrid.js'
-
 import '../../../dist/style.css'
 
 const visible = ref(false)
